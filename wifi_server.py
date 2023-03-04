@@ -9,33 +9,10 @@ turn_speed = 5
 
 curr_speed = 0
 obstacle = False
-
 distance_traveled = 0
 
-HOST = "172.16.252.49" # IP address of your Raspberry PI
+HOST = "172.16.252.49"  # IP address of your Raspberry PI
 PORT = 65432          # Port to listen on (non-privileged ports are > 1023)
-
-def scan_environment():
-    current_angle = -90
-    fc.get_distance_at(current_angle)
-    time.sleep(0.2)
-
-    dist_list = []
-    while True:
-        dist = fc.get_distance_at(current_angle)
-        dist_list.append(dist)
-        if current_angle == 90:
-            break
-        current_angle += 5
-    
-    fc.get_distance_at(0)
-    time.sleep(0.2)
-
-    dist_list = np.array(dist_list)
-    # m is True is nothing infront, false if there is things in front
-    m = not np.any((dist_list[12:25] <= 35) & (dist_list[12:25] > 0))
-    
-    return m
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind((HOST, PORT))
@@ -43,22 +20,37 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
     try:
         while 1:
+            scan_list = fc.scan_step(35)
+            if not scan_list:
+                continue
+
+            tmp = scan_list[3:7]
+            if tmp != [2, 2, 2, 2]:
+                obstacle = True
+            else:
+                obstacle = False
+
             client, clientInfo = s.accept()
             print("server recv from: ", clientInfo)
-            data = client.recv(1024)      # receive 1024 Bytes of message in binary format
-            
+            # receive 1024 Bytes of message in binary format
+            data = client.recv(1024)
+
             if data == "0":
                 # stop
-                fc.stop() 
+                fc.stop()
                 curr_speed = 0
+                end_time = time.time()
+                distance_traveled += (end_time - start_time) * speed
             elif data == "87":
                 # w
                 fc.forward(speed)
                 curr_speed = speed
+                start_time = time.time()
             elif data == "83":
                 # s
                 fc.backward(speed)
-                curr_speed = -speed
+                curr_speed = speed
+                start_time = time.time()
             elif data == "65":
                 # a
                 fc.turn_left(turn_speed)
@@ -74,14 +66,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 else:
                     obstacle = True
 
-
             data = {
-                "curr_speed" : curr_speed,
-                "obstacle": obstacle, 
+                "curr_speed": curr_speed,
+                "obstacle": obstacle,
+                "distance_traveled": distance_traveled,
             }
             print(json.dumps(data))
-            client.sendall(json.dumps(data)) # Echo back to client
-    except: 
+            client.sendall(json.dumps(data))  # Echo back to client
+    except:
         print("Closing socket")
         client.close()
-        s.close()    
+        s.close()
