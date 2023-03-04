@@ -31,11 +31,19 @@ function client() {
 
 function send_to_server(s) {
     const client = net.createConnection({ port: server_port, host: server_addr }, () => {
-        // 'connect' listener.
         console.log('connected to server!');
-        // send the message
         client.write(`${s}\r\n`);
-    }); 
+    });
+
+    client.on('data', (data) => {
+        console.log(data.toString());
+        obj = JSON.parse(data.toString());
+        document.getElementById("speed").innerText = obj.curr_speed;
+        document.getElementById("distance").innerText = obj.distance_traveled;
+        document.getElementById("obstacle").innerText = obj.is_obstacle;
+        client.end();
+        client.destroy();
+    });
 
     client.on('end', () => {
         console.log('disconnected from server');

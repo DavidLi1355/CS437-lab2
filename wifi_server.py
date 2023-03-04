@@ -62,8 +62,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
             data = {
                 "curr_speed": curr_speed,
-                "is_obstacle": is_obstacle,
                 "distance_traveled": distance_traveled,
+                "is_obstacle": is_obstacle,
             }
             print(json.dumps(data))
             client.sendall(json.dumps(data))  # Echo back to client
