@@ -8,7 +8,7 @@ speed = 10
 turn_speed = 5
 
 curr_speed = 0
-obstacle = False
+is_obstacle = False
 distance_traveled = 0
 
 HOST = "172.16.252.49"  # IP address of your Raspberry PI
@@ -26,9 +26,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
             tmp = scan_list[3:7]
             if tmp != [2, 2, 2, 2]:
-                obstacle = True
+                is_obstacle = True
             else:
-                obstacle = False
+                is_obstacle = False
 
             client, clientInfo = s.accept()
             print("server recv from: ", clientInfo)
@@ -59,16 +59,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 # d
                 fc.turn_right(turn_speed)
                 curr_speed = 0
-            elif data == "scan":
-                # scan obstacle
-                if scan_environment:
-                    obstacle = False
-                else:
-                    obstacle = True
 
             data = {
                 "curr_speed": curr_speed,
-                "obstacle": obstacle,
+                "is_obstacle": is_obstacle,
                 "distance_traveled": distance_traveled,
             }
             print(json.dumps(data))
