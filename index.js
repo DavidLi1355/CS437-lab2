@@ -2,24 +2,21 @@ document.onkeydown = updateKey;
 document.onkeyup = resetKey;
 
 var server_port = 65432;
-var server_addr = "172.16.252.49";   // the IP address of your Raspberry PI
+var server_addr = "127.0.0.1";   // the IP address of your Raspberry PI
 
-function client() {
-    
+function read_from_server() {
+    console.log("reading from server");
     const net = require('net');
-    var input = document.getElementById("message").value;
-
     const client = net.createConnection({ port: server_port, host: server_addr }, () => {
-        // 'connect' listener.
         console.log('connected to server!');
-        // send the message
-        client.write(`${input}\r\n`);
     });
-    
-    // get the data from the server
+
     client.on('data', (data) => {
-        document.getElementById("bluetooth").innerHTML = data;
         console.log(data.toString());
+        obj = JSON.parse(data.toString());
+        document.getElementById("speed").innerText = obj.curr_speed;
+        document.getElementById("distance").innerText = obj.distance_traveled;
+        document.getElementById("battery").innerText = obj.battery_percentage;
         client.end();
         client.destroy();
     });
@@ -30,9 +27,10 @@ function client() {
 }
 
 function send_to_server(s) {
+    const net = require('net');
     const client = net.createConnection({ port: server_port, host: server_addr }, () => {
         console.log('connected to server!');
-        client.write(`${s}\r\n`);
+        client.write(`${s}`);
     });
 
     client.on('data', (data) => {
@@ -40,7 +38,7 @@ function send_to_server(s) {
         obj = JSON.parse(data.toString());
         document.getElementById("speed").innerText = obj.curr_speed;
         document.getElementById("distance").innerText = obj.distance_traveled;
-        document.getElementById("obstacle").innerText = obj.is_obstacle;
+        document.getElementById("battery").innerText = obj.battery_percentage;
         client.end();
         client.destroy();
     });
@@ -52,31 +50,27 @@ function send_to_server(s) {
 
 // for detecting which key is been pressed w,a,s,d
 function updateKey(e) {
-
+    console.log("update key")
     e = e || window.event;
 
     if (e.keyCode == '87') {
         // up (w)
         document.getElementById("upArrow").style.color = "green";
-        send_data("87");
         send_to_server("87");
     }
     else if (e.keyCode == '83') {
         // down (s)
         document.getElementById("downArrow").style.color = "green";
-        send_data("83");
         send_to_server("83");
     }
     else if (e.keyCode == '65') {
         // left (a)
         document.getElementById("leftArrow").style.color = "green";
-        send_data("65");
         send_to_server("65");
     }
     else if (e.keyCode == '68') {
         // right (d)
         document.getElementById("rightArrow").style.color = "green";
-        send_data("68");
         send_to_server("68");
     }
 }
@@ -90,15 +84,5 @@ function resetKey(e) {
     document.getElementById("leftArrow").style.color = "grey";
     document.getElementById("rightArrow").style.color = "grey";
 
-    send_data("0");
     send_to_server("0");
-}
-
-
-// update data for every 50ms
-function update_data(){
-    setInterval(function(){
-        // get image from python server
-        client();
-    }, 50);
 }
